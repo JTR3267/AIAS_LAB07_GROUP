@@ -1,0 +1,7 @@
+## RV32 Emulator Testing Assembly Code for CTZ function
+
+main:
+addi x30, x0, 1
+slli x30, x30, 17
+ctz  x31, x30
+hcf

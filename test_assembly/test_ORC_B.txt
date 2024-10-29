@@ -1,0 +1,7 @@
+## RV32 Emulator Testing Assembly Code for ORC_B function
+
+main:
+addi x30, x0, 15
+slli x30, x30, 6
+orc.b x31, x30
+hcf

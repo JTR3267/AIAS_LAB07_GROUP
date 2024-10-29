@@ -1,0 +1,10 @@
+## RV32 Emulator Testing Assembly Code for REV8 function
+
+main:
+addi x30, x0, 189
+slli x30, x30, 8
+addi x30, x30, 245
+slli x30, x30, 16
+addi x30, x30, 67
+rev8 x31, x30
+hcf

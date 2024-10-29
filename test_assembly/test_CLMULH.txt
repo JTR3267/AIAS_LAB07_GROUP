@@ -1,0 +1,7 @@
+## RV32 Emulator Testing Assembly Code for CLMULH function
+
+main:
+addi   x29, x0, -549
+addi   x30, x0, -648
+clmulh x31, x29, x30
+hcf

@@ -1,0 +1,11 @@
+## RV32 Emulator Testing Assembly Code for MAXU function
+
+main:
+addi x26, x0, 5
+addi x27, x0, -1
+maxu x28, x26, x27
+
+addi x29, x0, 38
+addi x30, x0, 354
+maxu x31, x29, x30
+hcf

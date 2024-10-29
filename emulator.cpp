@@ -49,6 +49,26 @@ void print_regfile(uint32_t rf[32]) {
 
 typedef enum {
 	UNIMPL = 0,
+
+	//instruction added
+	ANDN,
+	CLMUL,
+	CLMULH,
+	CLMULR,
+	CLZ,
+	CPOP,
+	CTZ,
+	MAX,
+	MAXU,
+	MIN,
+	MINU,
+	ORC_B,
+	ORN,
+	REV8,
+	ROL,
+	ROR,
+    //*****************
+
 	ADD,
 	ADDI,
 	AND,
@@ -90,6 +110,25 @@ typedef enum {
 } instr_type;
 
 instr_type parse_instr(char* tok) {
+	//instruction added
+	if ( streq(tok , "andn")) return ANDN;
+	if ( streq(tok , "clmul")) return CLMUL;
+	if ( streq(tok , "clmulh")) return CLMULH;
+	if ( streq(tok , "clmulr")) return CLMULR;
+	if ( streq(tok , "clz")) return CLZ;
+	if ( streq(tok , "cpop")) return CPOP;
+	if ( streq(tok , "ctz")) return CTZ;
+	if ( streq(tok , "max")) return MAX;
+	if ( streq(tok , "maxu")) return MAXU;
+	if ( streq(tok , "min")) return MIN;
+	if ( streq(tok , "minu")) return MINU;
+	if ( streq(tok , "orc.b")) return ORC_B;
+	if ( streq(tok , "orn")) return ORN;
+	if ( streq(tok , "rev8")) return REV8;
+	if ( streq(tok , "rol")) return ROL;
+	if ( streq(tok , "ror")) return ROR;
+    //*****************
+
 	// 2r->1r
 	if ( streq(tok, "add") ) return ADD;
 	if ( streq(tok, "sub") ) return SUB;
@@ -593,6 +632,36 @@ int parse_instr(int line, char* ftok, instr* imem, int memoff, label_loc* labels
 
 		switch( op ) {
 			case UNIMPL: return 1;
+
+			//instruction added
+			case ANDN:
+			case CLMUL:
+			case CLMULH:
+			case CLMULR:
+			case MAX:
+			case MAXU:
+			case MIN:
+			case MINU:
+			case ORN:
+			case ROL:
+			case ROR:
+				if ( !o1 || !o2 || !o3 || o4 ) print_syntax_error( line,  "Invalid format" );
+				i->a1.reg = parse_reg(o1 , line);
+				i->a2.reg = parse_reg(o2 , line);
+				i->a3.reg = parse_reg(o3 , line);
+			    return 1;
+			
+			case CLZ:
+			case CPOP:
+			case CTZ:
+			case ORC_B:
+			case REV8:
+				if ( !o1 || !o2 || o3 || o4 ) print_syntax_error( line,  "Invalid format" );
+				i->a1.reg = parse_reg(o1 , line);
+				i->a2.reg = parse_reg(o2 , line);
+			    return 1;
+			//****************
+
 			case JAL:
 				if ( o2 ) { // two operands, reg, label
 					if ( !o1 || !o2 || o3 || o4 ) print_syntax_error( line, "Invalid format" );
@@ -825,6 +894,185 @@ void execute(uint8_t* mem, instr* imem, label_loc* labels, int label_count, bool
 		
 		int pc_next = pc + 4;
 		switch (i.op) {
+			//instruction added
+			case ANDN:
+				// X(rd) = X(rs1) & ~X(rs2)
+				rf[i.a1.reg] = rf[i.a2.reg] & ~rf[i.a3.reg];
+				break;
+			case CLMUL:
+				// output : xlenbits = 0
+				rf[i.a1.reg] = 0;
+				// foreach (i from 0 to (xlen - 1) by 1)
+				for (int j = 0; j < 32; j++)
+				{
+					// if ((rs2_val >> i) & 1) then output = output ^ (rs1_val << i)
+					if ((rf[i.a3.reg] >> j) & 1)
+					{
+						rf[i.a1.reg] = rf[i.a1.reg] ^ (rf[i.a2.reg] << j);
+					}
+				}
+				break;
+			case CLMULH:
+				// output : xlenbits = 0
+				rf[i.a1.reg] = 0;
+				// foreach (i from 1 to xlen by 1)
+				for (int j = 1; j <= 32; j++)
+				{
+					// if ((rs2_val >> i) & 1) then output = output ^ (rs1_val >> (xlen - i))
+					if ((rf[i.a3.reg] >> j) & 1)
+					{
+						rf[i.a1.reg] = rf[i.a1.reg] ^ (rf[i.a2.reg] >> (32 - j));
+					}
+				}
+				break;
+			case CLMULR:
+				// output : xlenbits = 0
+				rf[i.a1.reg] = 0;
+				// foreach (i from 0 to (xlen - 1) by 1)
+				for (int j = 0; j < 32; j++)
+				{
+					// if ((rs2_val >> i) & 1) then output = output ^ (rs1_val >> (xlen - i - 1))
+					if ((rf[i.a3.reg] >> j) & 1)
+					{
+						rf[i.a1.reg] = rf[i.a1.reg] ^ (rf[i.a2.reg] >> (32 - j - 1));
+					}
+				}
+				break;
+			case CLZ:
+				// output : xlenbits = 0
+				rf[i.a1.reg] = 0;
+				// count from MSB
+				for (int j = 31; j >= 0; j--)
+				{
+					// check if bit set 1
+					if ((rf[i.a2.reg] >> j) & 1)
+					{
+						break;
+					}
+					else
+					{
+						rf[i.a1.reg]++;
+					}
+				}
+				break;
+			case CPOP:
+				// output : xlenbits = 0
+				rf[i.a1.reg] = 0;
+				// loop through all bit
+				for (int j = 0; j < 32; j++)
+				{
+					// check each bit
+					if ((rf[i.a2.reg] >> j) & 1)
+					{
+						rf[i.a1.reg]++;
+					}
+				}
+				break;
+			case CTZ:
+				// output : xlenbits = 0
+				rf[i.a1.reg] = 0;
+				// count from LSB
+				for (int j = 0; j < 32; j++)
+				{
+					// check if bit set 1
+					if ((rf[i.a2.reg] >> j) & 1)
+					{
+						break;
+					}
+					else
+					{
+						rf[i.a1.reg]++;
+					}
+				}
+				break;
+			case MAX:
+				// compare 2 signed integers, return bigger one
+				if ((int32_t)rf[i.a2.reg] > (int32_t)rf[i.a3.reg])
+				{
+					rf[i.a1.reg] = rf[i.a2.reg];
+				}
+				else
+				{
+					rf[i.a1.reg] = rf[i.a3.reg];
+				}
+				break;
+			case MAXU:
+				// compare 2 unsigned integers, return bigger one
+				if ((uint32_t)rf[i.a2.reg] > (uint32_t)rf[i.a3.reg])
+				{
+					rf[i.a1.reg] = rf[i.a2.reg];
+				}
+				else
+				{
+					rf[i.a1.reg] = rf[i.a3.reg];
+				}
+				break;
+			case MIN:
+				// compare 2 signed integers, return smaller one
+				if ((int32_t)rf[i.a2.reg] < (int32_t)rf[i.a3.reg])
+				{
+					rf[i.a1.reg] = rf[i.a2.reg];
+				}
+				else
+				{
+					rf[i.a1.reg] = rf[i.a3.reg];
+				}
+				break;
+			case MINU:
+				// compare 2 unsigned integers, return smaller one
+				if ((uint32_t)rf[i.a2.reg] < (uint32_t)rf[i.a3.reg])
+				{
+					rf[i.a1.reg] = rf[i.a2.reg];
+				}
+				else
+				{
+					rf[i.a1.reg] = rf[i.a3.reg];
+				}
+				break;
+			case ORC_B:
+				// output : xlenbits = 0
+				rf[i.a1.reg] = 0;
+				// loop each byte
+				for (int j = 24; j >= 0; j -= 8)
+				{
+					rf[i.a1.reg] = rf[i.a1.reg] << 8;
+					// check each byte
+					if ((rf[i.a2.reg] >> j) & 0xff)
+					{
+						rf[i.a1.reg] = rf[i.a1.reg] | 0xff;
+					}
+				}
+				break;
+			case ORN:
+				// X(rd) = X(rs1) | ~X(rs2)
+				rf[i.a1.reg] = rf[i.a2.reg] | ~rf[i.a3.reg];
+				break;
+			case REV8:
+				// output : xlenbits = 0
+				rf[i.a1.reg] = 0;
+				// loop each byte
+				for (int j = 24; j >= 0; j -= 8)
+				{
+					// loop each bit in byte
+					for (int k = 0; k < 8; k++)
+					{
+						rf[i.a1.reg] = rf[i.a1.reg] << 1;
+						rf[i.a1.reg] = rf[i.a1.reg] | ((rf[i.a2.reg] >> (j + k)) & 1);
+					}
+				}
+				break;
+			case ROL:
+				// shamt = rf[i.a3.reg] & 0x1f
+				// (X(rs1) << shamt) | (X(rs1) >> (xlen - shamt))
+				rf[i.a1.reg] = (rf[i.a2.reg] << (rf[i.a3.reg] & 0x1f)) | (rf[i.a2.reg] >> (32 - (rf[i.a3.reg] & 0x1f)));
+				break;
+			case ROR:
+				// shamt = rf[i.a3.reg] & 0x1f
+				// (X(rs1) >> shamt) | (X(rs1) << (xlen - shamt))
+				rf[i.a1.reg] = (rf[i.a2.reg] >> (rf[i.a3.reg] & 0x1f)) | (rf[i.a2.reg] << (32 - (rf[i.a3.reg] & 0x1f)));
+				break;
+      		//*****************
+
 			case ADD: rf[i.a1.reg] = rf[i.a2.reg] + rf[i.a3.reg]; break;
 			case SUB: rf[i.a1.reg] = rf[i.a2.reg] - rf[i.a3.reg]; break;
 			case SLT: rf[i.a1.reg] = (*(int32_t*)&rf[i.a2.reg]) < (*(int32_t*)&rf[i.a3.reg]) ? 1 : 0; break;

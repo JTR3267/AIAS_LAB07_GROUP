@@ -1,0 +1,11 @@
+## RV32 Emulator Testing Assembly Code for CLMUL function
+
+main:
+addi  x26, x0, 2
+addi  x27, x0, 3
+clmul x28, x26, x27
+
+addi  x29, x0, 3
+addi  x30, x0, 3
+clmul x31, x29, x30
+hcf
