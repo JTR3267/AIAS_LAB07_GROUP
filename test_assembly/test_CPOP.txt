@@ -1,0 +1,8 @@
+## RV32 Emulator Testing Assembly Code for CPOP function
+
+main:
+addi x30, x0, 1
+slli x30, x30, 17
+addi x30, x30, 15
+cpop x31, x30
+hcf
