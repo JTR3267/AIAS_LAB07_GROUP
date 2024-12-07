@@ -1,0 +1,7 @@
+## RV32 Emulator Testing Assembly Code for SH1ADD function
+## expect x30 = 0x0000000e
+main:
+addi x28, x0, 5
+addi x29, x0, 4
+sh1add  x30, x28, x29
+hcf

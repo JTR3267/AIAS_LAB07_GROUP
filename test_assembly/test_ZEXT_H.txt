@@ -1,0 +1,7 @@
+## RV32 Emulator Testing Assembly Code for ZEXT_H function
+## expect x30 = 0x0000f000
+main:
+addi x28, x0, 127
+slli x28, x28, 12
+zext.h  x30, x28
+hcf
