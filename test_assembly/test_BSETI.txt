@@ -1,0 +1,6 @@
+## RV32 Emulator Testing Assembly Code for BSETI function
+## expect x30 = 7
+main:
+addi x28, x0, 5
+binvi  x30, x28, 1
+hcf

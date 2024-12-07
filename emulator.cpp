@@ -67,6 +67,23 @@ typedef enum {
 	REV8,
 	ROL,
 	ROR,
+	// Member 2 part
+	RORI,
+	BCLR,
+	BCLRI,
+	BEXT,
+	BEXTI,
+	BINV,
+	BINVI,
+	BSET,
+	BSETI,
+	SEXT_B,
+	SEXT_H,
+	SH1ADD,
+	SH2ADD,
+	SH3ADD,
+	XNOR,
+	ZEXT_H,
     //*****************
 
 	ADD,
@@ -127,6 +144,23 @@ instr_type parse_instr(char* tok) {
 	if ( streq(tok , "rev8")) return REV8;
 	if ( streq(tok , "rol")) return ROL;
 	if ( streq(tok , "ror")) return ROR;
+	// Member 2 part
+	if ( streq(tok , "rori")) return RORI;
+	if ( streq(tok , "bclr")) return BCLR;
+	if ( streq(tok , "bclri")) return BCLRI;
+	if ( streq(tok , "bext")) return BEXT;
+	if ( streq(tok , "bexti")) return BEXTI;
+	if ( streq(tok , "binv")) return BINV;
+	if ( streq(tok , "binvi")) return BINVI;
+	if ( streq(tok , "bset")) return BSET;
+	if ( streq(tok , "bseti")) return BSETI;
+	if ( streq(tok , "sext.b")) return SEXT_B;
+	if ( streq(tok , "sext.h")) return SEXT_H;
+	if ( streq(tok , "sh1add")) return SH1ADD;
+	if ( streq(tok , "sh2add")) return SH2ADD;
+	if ( streq(tok , "sh3add")) return SH3ADD;
+	if ( streq(tok , "xnor")) return XNOR;
+	if ( streq(tok , "zext.h")) return ZEXT_H;
     //*****************
 
 	// 2r->1r
@@ -645,6 +679,14 @@ int parse_instr(int line, char* ftok, instr* imem, int memoff, label_loc* labels
 			case ORN:
 			case ROL:
 			case ROR:
+			case BCLR:
+			case BEXT:
+			case SH1ADD:
+			case SH2ADD:
+			case SH3ADD:
+			case XNOR:
+			case BINV:
+			case BSET:
 				if ( !o1 || !o2 || !o3 || o4 ) print_syntax_error( line,  "Invalid format" );
 				i->a1.reg = parse_reg(o1 , line);
 				i->a2.reg = parse_reg(o2 , line);
@@ -656,9 +698,22 @@ int parse_instr(int line, char* ftok, instr* imem, int memoff, label_loc* labels
 			case CTZ:
 			case ORC_B:
 			case REV8:
+			case SEXT_B:
+			case SEXT_H:
+			case ZEXT_H:
 				if ( !o1 || !o2 || o3 || o4 ) print_syntax_error( line,  "Invalid format" );
 				i->a1.reg = parse_reg(o1 , line);
 				i->a2.reg = parse_reg(o2 , line);
+			    return 1;
+			case RORI:
+			case BCLRI:
+			case BEXTI:
+			case BINVI:
+			case BSETI:
+				if ( !o1 || !o2 || !o3 || o4 ) print_syntax_error( line,  "Invalid format" );
+				i->a1.reg = parse_reg(o1 , line);
+				i->a2.reg = parse_reg(o2 , line);
+				i->a3.imm = parse_imm(o3, 5, line);
 			    return 1;
 			//****************
 
@@ -1070,6 +1125,92 @@ void execute(uint8_t* mem, instr* imem, label_loc* labels, int label_count, bool
 				// shamt = rf[i.a3.reg] & 0x1f
 				// (X(rs1) >> shamt) | (X(rs1) << (xlen - shamt))
 				rf[i.a1.reg] = (rf[i.a2.reg] >> (rf[i.a3.reg] & 0x1f)) | (rf[i.a2.reg] << (32 - (rf[i.a3.reg] & 0x1f)));
+				break;
+			// Member 2 part
+			case RORI:
+				// shamt = i.a3.imm & 0x1f
+				// (X(rs1) >> shamt) | (X(rs1) << (xlen - shamt))
+				rf[i.a1.reg] = (rf[i.a2.reg] >> (i.a3.imm & 0x1f)) | (rf[i.a2.reg] << (32 - (i.a3.imm & 0x1f)));
+				break;
+			case BCLR:
+				// index = X(rs2) & (XLEN - 1)
+				// X(rs1) & ~(1 << index)
+				rf[i.a1.reg] = rf[i.a2.reg] & ~(1 << (rf[i.a3.reg] & 0x1f));
+				break;
+			case BCLRI:
+				// index = X(rs2) & (XLEN - 1)
+				// X(rs1) & ~(1 << index)
+				rf[i.a1.reg] = rf[i.a2.reg] & ~(1 << (i.a3.imm & 0x1f));
+				break;
+			case BEXT:
+				// index = X(rs2) & (XLEN - 1)
+				// (X(rs1) >> index) & 1
+				rf[i.a1.reg] = (rf[i.a2.reg] >> (rf[i.a3.reg] & 0x1f)) & 1;
+				break;
+			case BEXTI:
+				// index = X(rs2) & (XLEN - 1)
+				// (X(rs1) >> index) & 1
+				rf[i.a1.reg] = (rf[i.a2.reg] >> (i.a3.imm & 0x1f)) & 1;
+				break;
+			case BINV:
+				// index = X(rs2) & (XLEN - 1)
+				// X(rs1) ^ (1 << index)
+				rf[i.a1.reg] = rf[i.a2.reg] ^ (1 << (rf[i.a3.reg] & 0x1f));
+				break;
+			case BINVI:
+				// index = shamt & (XLEN - 1)
+				// X(rs1) ^ (1 << index)
+				rf[i.a1.reg] = rf[i.a2.reg] ^ (1 << (i.a3.imm & 0x1f));
+				break;
+			case BSET:
+				// index = X(rs2) & (XLEN - 1)
+				// X(rs1) | (1 << index)
+				rf[i.a1.reg] = rf[i.a2.reg] | (1 << (rf[i.a3.reg] & 0x1f));
+				break;
+			case BSETI:
+				// index = shamt & (XLEN - 1)
+				// X(rs1) | (1 << index)
+				rf[i.a1.reg] = rf[i.a2.reg] | (1 << (i.a3.imm & 0x1f));
+				break;
+			case SEXT_B:
+				// EXTS(X(rs)[7..0])
+				if ((rf[i.a2.reg] >> 7) & 1)
+				{
+					rf[i.a1.reg] = (rf[i.a2.reg] & 0xff) | 0xffffff00;
+				}
+				else{
+					rf[i.a1.reg] = rf[i.a2.reg] & 0xff;
+				}
+				break;
+			case SEXT_H:
+				// EXTS(X(rs)[15..0])
+				if ((rf[i.a2.reg] >> 15) & 1)
+				{
+					rf[i.a1.reg] = (rf[i.a2.reg] & 0xffff) | 0xffff0000;
+				}
+				else{
+					rf[i.a1.reg] = rf[i.a2.reg] & 0xffff;
+				}
+				break;
+			case SH1ADD:
+				// X(rs2) + (X(rs1) << 1)
+				rf[i.a1.reg] = (rf[i.a2.reg] << 1) + rf[i.a3.reg];
+				break;
+			case SH2ADD:
+				// X(rs2) + (X(rs1) << 2)
+				rf[i.a1.reg] = (rf[i.a2.reg] << 2) + rf[i.a3.reg];
+				break;
+			case SH3ADD:
+				// X(rs2) + (X(rs1) << 3)
+				rf[i.a1.reg] = (rf[i.a2.reg] << 3) + rf[i.a3.reg];
+				break;
+			case XNOR:
+				// ~(X(rs1) ^ X(rs2))
+				rf[i.a1.reg] = ~(rf[i.a2.reg] ^ rf[i.a3.reg]);
+				break;
+			case ZEXT_H:
+				// EXTZ(X(rs)[15..0])
+				rf[i.a1.reg] = rf[i.a2.reg] & 0x0000ffff;
 				break;
       		//*****************
 

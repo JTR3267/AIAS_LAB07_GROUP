@@ -1,0 +1,7 @@
+## RV32 Emulator Testing Assembly Code for SEXT_H function
+## expect x30 = 0xffffff06
+main:
+addi x28, x0, -1000
+srli x28, x28, 2
+sext.h  x30, x28
+hcf

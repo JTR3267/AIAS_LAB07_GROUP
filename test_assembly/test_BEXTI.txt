@@ -1,0 +1,6 @@
+## RV32 Emulator Testing Assembly Code for BEXTI function
+## expect x30 = 1
+main:
+addi x28, x0, 20
+bexti  x30, x28, 2
+hcf
