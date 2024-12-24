@@ -1051,13 +1051,13 @@ void execute(uint8_t* mem, instr* imem, label_loc* labels, int label_count, bool
 				// output : xlenbits = 0
 				rf[i.a1.reg] = 0;
 				// loop each byte
-				for (int j = 24; j >= 0; j -= 8)
+				for (int j = 0; j < 32; j += 8)
 				{
 					// loop each bit in byte
-					for (int k = 0; k < 8; k++)
+					for (int k = 7; k >= 0; k--)
 					{
 						rf[i.a1.reg] = rf[i.a1.reg] << 1;
-						rf[i.a1.reg] = rf[i.a1.reg] | ((rf[i.a2.reg] >> (j + k)) & 1);
+						rf[i.a1.reg] = rf[i.a1.reg] | ((rf[i.a2.reg] >> (j+k)) & 1);
 					}
 				}
 				break;
